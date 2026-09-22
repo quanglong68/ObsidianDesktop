@@ -1,0 +1,27 @@
+name: fptu_second_brain
+description: "A new Flutter project."
+publish_to: "none"
+
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.13.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  provider: ^6.1.1
+  google_generative_ai: ^0.2.2
+  url_launcher: ^6.2.4
+  shared_preferences: ^2.2.2
+  file_picker: ^6.1.1
+  flutter_markdown: ^0.6.18
+  sqflite_common_ffi: ^2.3.0
+  path_provider: ^2.1.2
+  path: ^1.8.3
+  flutter_dotenv: ^6.0.1
+
+flutter:
+  uses-material-design: true
+  assets:
+    - .env
