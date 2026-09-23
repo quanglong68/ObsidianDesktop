@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../providers/app_provider.dart';
 import '../dialogs/settings_dialog.dart';
+import '../dialogs/deadline_dialog.dart';
 
 class SidebarWidget extends StatelessWidget {
   const SidebarWidget({super.key});
@@ -75,6 +76,30 @@ class SidebarWidget extends StatelessWidget {
             ],
           ),
           const Spacer(),
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1E293B),
+                side: const BorderSide(color: Color(0xFFF26F21)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              icon: const Icon(Icons.event_note, color: Color(0xFFF26F21)),
+              label: const Text(
+                "XEM DEADLINE",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  letterSpacing: 1,
+                ),
+              ),
+              onPressed: () => showDeadlineDialog(context, provider),
+            ),
+          ),
+          const SizedBox(height: 15),
           SizedBox(
             width: double.infinity,
             height: 50,

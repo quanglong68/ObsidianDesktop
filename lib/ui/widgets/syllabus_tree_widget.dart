@@ -6,6 +6,70 @@ import '../dialogs/syllabus_setup_dialogs.dart';
 import '../dialogs/file_action_dialog.dart';
 import '../dialogs/editor_dialog.dart';
 
+class BlinkingUrgentContainer extends StatefulWidget {
+  final Widget child;
+  const BlinkingUrgentContainer({super.key, required this.child});
+
+  @override
+  State<BlinkingUrgentContainer> createState() =>
+      _BlinkingUrgentContainerState();
+}
+
+class _BlinkingUrgentContainerState extends State<BlinkingUrgentContainer>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Container(
+          margin: const EdgeInsets.only(top: 20, bottom: 10),
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.redAccent.withOpacity(
+              0.05 + (_controller.value * 0.05),
+            ),
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(
+              color: Colors.redAccent.withOpacity(
+                0.3 + (_controller.value * 0.5),
+              ),
+              width: 2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.redAccent.withOpacity(
+                  0.1 + (_controller.value * 0.2),
+                ),
+                blurRadius: 15,
+                spreadRadius: 2,
+              ),
+            ],
+          ),
+          child: widget.child,
+        );
+      },
+    );
+  }
+}
+
 class SyllabusTreeWidget extends StatelessWidget {
   const SyllabusTreeWidget({super.key});
 
@@ -75,7 +139,7 @@ class SyllabusTreeWidget extends StatelessWidget {
                         ),
                       ),
                       Tooltip(
-                        message: "Tạo Ngành Học Mới (Tự nhập)",
+                        message: "Tạo Ngành Học Mới",
                         child: IconButton(
                           icon: const Icon(
                             Icons.add_circle,
@@ -129,7 +193,7 @@ class SyllabusTreeWidget extends StatelessWidget {
                         ),
                       ),
                       Tooltip(
-                        message: "Tạo Chuyên ngành mới (Tự nhập)",
+                        message: "Tạo Chuyên ngành mới",
                         child: IconButton(
                           icon: const Icon(
                             Icons.add_circle,
@@ -146,6 +210,9 @@ class SyllabusTreeWidget extends StatelessWidget {
               ],
             ),
           ),
+
+          _buildUrgentDeadlines(context, provider),
+
           const SizedBox(height: 30),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -348,7 +415,6 @@ class SyllabusTreeWidget extends StatelessWidget {
                                           color: Colors.grey,
                                           size: 20,
                                         ),
-                                        tooltip: "Thêm môn học vào kỳ này",
                                         onPressed: () => showAddSubjectDialog(
                                           context,
                                           index,
@@ -394,6 +460,147 @@ class SyllabusTreeWidget extends StatelessWidget {
                       );
                     },
                   ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUrgentDeadlines(BuildContext context, AppProvider provider) {
+    DateTime now = DateTime.now();
+    DateTime today = DateTime(now.year, now.month, now.day);
+
+    List<TaskItem> urgentTasks = provider.getAllTasks().where((task) {
+      if (task.isDone) return false;
+      DateTime taskDay = DateTime(
+        task.dueDate.year,
+        task.dueDate.month,
+        task.dueDate.day,
+      );
+      int diffDays = taskDay.difference(today).inDays;
+      return diffDays <= 3;
+    }).toList();
+
+    if (urgentTasks.isEmpty) return const SizedBox.shrink();
+
+    return BlinkingUrgentContainer(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(
+                Icons.warning_amber_rounded,
+                color: Colors.redAccent,
+                size: 24,
+              ),
+              SizedBox(width: 10),
+              Text(
+                "CẢNH BÁO DEADLINE GẤP KHÔNG THỂ BỎ QUA!",
+                style: TextStyle(
+                  color: Colors.redAccent,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 15),
+          SizedBox(
+            height: 100,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: urgentTasks.length,
+              itemBuilder: (context, index) {
+                TaskItem task = urgentTasks[index];
+                DateTime taskDay = DateTime(
+                  task.dueDate.year,
+                  task.dueDate.month,
+                  task.dueDate.day,
+                );
+                int diffDays = taskDay.difference(today).inDays;
+
+                String badgeText = diffDays < 0
+                    ? "Quá hạn"
+                    : (diffDays == 0 ? "Hôm nay" : "Còn $diffDays ngày");
+                String dateStr =
+                    "${task.dueDate.day.toString().padLeft(2, '0')}/${task.dueDate.month.toString().padLeft(2, '0')}/${task.dueDate.year}";
+
+                return Container(
+                  width: 300,
+                  margin: const EdgeInsets.only(right: 15),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0F172A),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: Colors.redAccent.withOpacity(0.5),
+                    ),
+                  ),
+                  child: InkWell(
+                    onTap: () => provider.openObsidianFile(task.fileName),
+                    borderRadius: BorderRadius.circular(8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          task.content,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.redAccent,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                badgeText,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            Text(
+                              "Hạn: $dateStr",
+                              style: TextStyle(
+                                color: Colors.grey[400],
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          "Mở file: ${task.fileName}.md",
+                          style: const TextStyle(
+                            color: Colors.cyanAccent,
+                            fontSize: 10,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
           ),
         ],
       ),

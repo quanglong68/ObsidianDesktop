@@ -14,8 +14,26 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import '../core/constants.dart';
 
+class TaskItem {
+  final String fileName;
+  final String content;
+  final DateTime dueDate;
+  final bool isDone;
+  final String originalLine;
+
+  TaskItem({
+    required this.fileName,
+    required this.content,
+    required this.dueDate,
+    required this.isDone,
+    required this.originalLine,
+  });
+}
+
 class AppProvider extends ChangeNotifier {
   Map<String, List<String>> tagFileMap = {};
+  Map<String, List<TaskItem>> fileTasksMap = {};
+
   String statusMessage = "System is starting...";
   bool isScanning = false;
   List<Map<String, String>> chatHistory = [];
@@ -188,6 +206,46 @@ class AppProvider extends ChangeNotifier {
     return allFiles.toList();
   }
 
+  List<TaskItem> getAllTasks() {
+    List<TaskItem> list = [];
+    for (var tasks in fileTasksMap.values) {
+      list.addAll(tasks);
+    }
+    list.sort((a, b) {
+      if (a.isDone && !b.isDone) return 1;
+      if (!a.isDone && b.isDone) return -1;
+      return a.dueDate.compareTo(b.dueDate);
+    });
+    return list;
+  }
+
+  Future<void> toggleTaskStatus(TaskItem task) async {
+    if (vaultPath.isEmpty) return;
+    String filePath = "$vaultPath${Platform.pathSeparator}${task.fileName}.md";
+    File file = File(filePath);
+
+    if (!await file.exists()) return;
+
+    String content = await file.readAsString();
+    String newLine;
+
+    if (task.isDone) {
+      newLine = task.originalLine.replaceFirst(RegExp(r'- \[[xX]\]'), '- [ ]');
+    } else {
+      newLine = task.originalLine.replaceFirst('- [ ]', '- [x]');
+    }
+
+    content = content.replaceFirst(task.originalLine, newLine);
+
+    try {
+      await file.writeAsString(content);
+      await scanObsidianVault();
+    } catch (e) {
+      statusMessage = "Error updating task: $e";
+      notifyListeners();
+    }
+  }
+
   Future<String> readFileContent(String fileName) async {
     if (vaultPath.isEmpty) return "";
     String filePath = "$vaultPath${Platform.pathSeparator}$fileName.md";
@@ -334,6 +392,11 @@ class AppProvider extends ChangeNotifier {
     }
 
     RegExp tagRegex = RegExp(r'#([a-zA-Z0-9_]+)');
+    RegExp taskRegex = RegExp(
+      r'^[ \t]*- \[(x|X| )\] (.*?)@due\s*(\d{1,2})/(\d{1,2})/(\d{4}).*$',
+      multiLine: true,
+    );
+
     List<FileSystemEntity> fileList = vaultDir.listSync(recursive: true);
     final embeddingModel = GenerativeModel(
       model: dotenv.env['EMBEDDING_MODEL'] ?? 'gemini-embedding-001',
@@ -344,6 +407,7 @@ class AppProvider extends ChangeNotifier {
     int skippedFilesCount = 0;
 
     tagFileMap.clear();
+    fileTasksMap.clear();
 
     for (var file in fileList) {
       if (file is File && file.path.endsWith(".md")) {
@@ -353,13 +417,38 @@ class AppProvider extends ChangeNotifier {
             .last
             .replaceAll('.md', '');
 
-        Iterable<Match> matches = tagRegex.allMatches(content);
-        for (var match in matches) {
+        Iterable<Match> tagMatches = tagRegex.allMatches(content);
+        for (var match in tagMatches) {
           String tagName = match.group(0)!.replaceAll('#', '').toUpperCase();
           if (!tagFileMap.containsKey(tagName)) tagFileMap[tagName] = [];
           if (!tagFileMap[tagName]!.contains(originalFileName)) {
             tagFileMap[tagName]!.add(originalFileName);
           }
+        }
+
+        List<TaskItem> fileTasks = [];
+        Iterable<Match> taskMatches = taskRegex.allMatches(content);
+        for (var match in taskMatches) {
+          String originalLine = match.group(0)!;
+          bool isDone = match.group(1)?.toLowerCase() == 'x';
+          String taskContent = match.group(2)?.trim() ?? '';
+          int d = int.parse(match.group(3)!);
+          int m = int.parse(match.group(4)!);
+          int y = int.parse(match.group(5)!);
+
+          fileTasks.add(
+            TaskItem(
+              fileName: originalFileName,
+              content: taskContent,
+              dueDate: DateTime(y, m, d),
+              isDone: isDone,
+              originalLine: originalLine,
+            ),
+          );
+        }
+
+        if (fileTasks.isNotEmpty) {
+          fileTasksMap[originalFileName] = fileTasks;
         }
 
         int currentModifiedTime = file
@@ -553,13 +642,20 @@ TASK:
         success = true;
       } catch (e) {
         errorMessage = e.toString();
+        if (errorMessage.contains("429") || errorMessage.contains("quota")) {
+          chatHistory.add({
+            "role": "bot",
+            "text": "⚠️ Đã hết hạn mức hoặc gửi quá nhanh. Vui lòng chờ 10-15s rồi thử lại.",
+          });
+          break;
+        }
         if (attempt == maxRetries) {
           chatHistory.add({
             "role": "bot",
             "text": "Server Error: $errorMessage",
           });
         } else {
-          await Future.delayed(Duration(seconds: retryDelaySeconds));
+          await Future.delayed(Duration(seconds: retryDelaySeconds * attempt));
         }
       }
     }
