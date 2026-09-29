@@ -55,7 +55,7 @@ class DashboardScreen extends StatelessWidget {
                 child: BackdropFilter(
                   filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
                   child: InkWell(
-                    onTap: () => showEditorDialog(context, null, null),
+                    onTap: () => showEditorDialog(context, "QUICK", null),
                     borderRadius: BorderRadius.circular(30),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
