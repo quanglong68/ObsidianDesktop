@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../../providers/app_provider.dart';
 import '../dialogs/settings_dialog.dart';
 import '../dialogs/deadline_dialog.dart';
+import '../dialogs/flm_sync_dialog.dart';
+import '../dialogs/webview_login_dialog.dart';
 
 class SidebarWidget extends StatelessWidget {
   const SidebarWidget({super.key});
@@ -99,7 +101,37 @@ class SidebarWidget extends StatelessWidget {
               onPressed: () => showDeadlineDialog(context, provider),
             ),
           ),
+
           const SizedBox(height: 15),
+
+          // NÚT: FLM AUTO-SYNC
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1E293B),
+                side: const BorderSide(color: Color(0xFF8B5CF6)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              icon: const Icon(Icons.public, color: Color(0xFF8B5CF6)),
+              label: const Text(
+                "FLM AUTO-SYNC",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  letterSpacing: 1,
+                ),
+              ),
+              onPressed: () => showWebViewLoginDialog(context, provider),
+            ),
+          ),
+
+          const SizedBox(height: 15),
+
+          // NÚT: SYNC VAULT
           SizedBox(
             width: double.infinity,
             height: 50,
@@ -134,6 +166,92 @@ class SidebarWidget extends StatelessWidget {
               ),
             ),
           ),
+
+          const SizedBox(height: 15),
+
+          // NÚT MỚI: HARD RESET AI
+          SizedBox(
+            width: double.infinity,
+            height: 40,
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.redAccent.withOpacity(0.1),
+                side: BorderSide(color: Colors.redAccent.withOpacity(0.5)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              icon: const Icon(
+                Icons.delete_forever,
+                color: Colors.redAccent,
+                size: 16,
+              ),
+              label: const Text(
+                "HARD RESET AI",
+                style: TextStyle(
+                  color: Colors.redAccent,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
+              onPressed: () {
+                // Hiển thị hộp thoại xác nhận trước khi xóa
+                showDialog(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    backgroundColor: const Color(0xFF1E293B),
+                    title: const Row(
+                      children: [
+                        Icon(
+                          Icons.warning_amber_rounded,
+                          color: Colors.redAccent,
+                        ),
+                        SizedBox(width: 10),
+                        Text(
+                          "Cảnh báo",
+                          style: TextStyle(
+                            color: Colors.redAccent,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    content: const Text(
+                      "Hành động này sẽ xóa toàn bộ bộ nhớ Vector của AI. Các file .md trên ổ cứng vẫn an toàn.\n\nBạn có chắc chắn muốn dọn sạch não AI?",
+                      style: TextStyle(color: Colors.white, height: 1.5),
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        child: const Text(
+                          "Hủy bỏ",
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      ),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.redAccent.withOpacity(0.2),
+                          side: const BorderSide(color: Colors.redAccent),
+                        ),
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          provider.hardResetDatabase();
+                        },
+                        child: const Text(
+                          "Xóa sạch",
+                          style: TextStyle(
+                            color: Colors.redAccent,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+
           const SizedBox(height: 20),
           Consumer<AppProvider>(
             builder: (context, kho, child) {

@@ -35,22 +35,69 @@ void showFileActionDialog(
                 itemCount: fileList.length,
                 itemBuilder: (context, index) {
                   String fileName = fileList[index];
+
+                  // KIỂM TRA PHÂN LOẠI FILE ĐỂ GẮN NHÃN MÀU
+                  bool isFLM = provider.flmFiles.contains(fileName);
+
                   return Container(
                     margin: const EdgeInsets.only(bottom: 10),
                     decoration: BoxDecoration(
                       color: Colors.black.withOpacity(0.3),
                       borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: isFLM
+                            ? Colors.cyanAccent.withOpacity(0.2)
+                            : const Color(0xFF8B5CF6).withOpacity(0.3),
+                      ),
                     ),
                     child: ListTile(
-                      leading: const Icon(
-                        Icons.description,
-                        color: Colors.cyanAccent,
+                      leading: Icon(
+                        isFLM ? Icons.school : Icons.edit_note,
+                        color: isFLM
+                            ? Colors.cyanAccent
+                            : const Color(0xFF8B5CF6),
+                        size: 30,
                       ),
                       title: Text(
                         fileName,
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      subtitle: Padding(
+                        padding: const EdgeInsets.only(top: 6.0),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isFLM
+                                  ? Colors.cyanAccent.withOpacity(0.1)
+                                  : const Color(0xFF8B5CF6).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(
+                                color: isFLM
+                                    ? Colors.cyanAccent
+                                    : const Color(0xFF8B5CF6),
+                                width: 1,
+                              ),
+                            ),
+                            child: Text(
+                              isFLM ? "FLM SYNC" : "USER NOTE",
+                              style: TextStyle(
+                                color: isFLM
+                                    ? Colors.cyanAccent
+                                    : const Color(0xFF8B5CF6),
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                       trailing: Row(

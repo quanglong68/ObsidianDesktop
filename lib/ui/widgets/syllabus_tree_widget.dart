@@ -82,7 +82,9 @@ class SyllabusTreeWidget extends StatelessWidget {
         {};
     var currentSyllabusPath =
         (trackMap[provider.currentTrack] as List<dynamic>?) ?? [];
-    List<String> personalTags = provider.getPersonalTags();
+
+    // Lấy trực tiếp danh sách File User thay vì lấy Tag rác
+    List<String> userNotes = provider.userFiles.toList();
 
     return Padding(
       padding: const EdgeInsets.all(40),
@@ -90,121 +92,34 @@ class SyllabusTreeWidget extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 20),
+            width: double.infinity,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.05),
+              color: const Color(0xFF1E293B).withOpacity(0.5),
               borderRadius: BorderRadius.circular(15),
               border: Border.all(color: Colors.cyanAccent.withOpacity(0.2)),
             ),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: DropdownButtonFormField<String>(
-                          decoration: const InputDecoration(
-                            labelText: "Ngành học",
-                            border: InputBorder.none,
-                          ),
-                          dropdownColor: const Color(0xFF1E293B),
-                          style: const TextStyle(
-                            color: Colors.cyanAccent,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                          value: provider.currentMajor,
-                          items: provider.activeSyllabus.keys
-                              .map<DropdownMenuItem<String>>((String major) {
-                                return DropdownMenuItem<String>(
-                                  value: major,
-                                  child: Text(major),
-                                );
-                              })
-                              .toList(),
-                          onChanged: (newMajor) {
-                            if (newMajor != null) {
-                              Map<String, dynamic> sub =
-                                  provider.activeSyllabus[newMajor]
-                                      as Map<String, dynamic>;
-                              String firstTrack = sub.isNotEmpty
-                                  ? sub.keys.first
-                                  : "";
-                              provider.changeMajorAndTrack(
-                                newMajor,
-                                firstTrack,
-                              );
-                            }
-                          },
-                        ),
-                      ),
-                      Tooltip(
-                        message: "Tạo Ngành Học Mới",
-                        child: IconButton(
-                          icon: const Icon(
-                            Icons.add_circle,
-                            color: Colors.cyanAccent,
-                            size: 26,
-                          ),
-                          onPressed: () =>
-                              showCreateMajorDialog(context, provider),
-                        ),
-                      ),
-                    ],
+                const Text(
+                  "CHƯƠNG TRÌNH ĐANG HỌC",
+                  style: TextStyle(
+                    color: Colors.grey,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(width: 20),
-                Expanded(
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: DropdownButtonFormField<String>(
-                          decoration: const InputDecoration(
-                            labelText: "Chuyên ngành hẹp",
-                            border: InputBorder.none,
-                          ),
-                          dropdownColor: const Color(0xFF1E293B),
-                          style: const TextStyle(
-                            color: Color(0xFFF26F21),
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                          value: trackMap.containsKey(provider.currentTrack)
-                              ? provider.currentTrack
-                              : (trackMap.isNotEmpty
-                                    ? trackMap.keys.first
-                                    : null),
-                          items: trackMap.keys.map<DropdownMenuItem<String>>((
-                            String track,
-                          ) {
-                            return DropdownMenuItem<String>(
-                              value: track,
-                              child: Text(track),
-                            );
-                          }).toList(),
-                          onChanged: (newTrack) {
-                            if (newTrack != null) {
-                              provider.changeMajorAndTrack(
-                                provider.currentMajor,
-                                newTrack,
-                              );
-                            }
-                          },
-                        ),
-                      ),
-                      Tooltip(
-                        message: "Tạo Chuyên ngành mới",
-                        child: IconButton(
-                          icon: const Icon(
-                            Icons.add_circle,
-                            color: Color(0xFFF26F21),
-                            size: 26,
-                          ),
-                          onPressed: () =>
-                              showCreateTrackDialog(context, provider),
-                        ),
-                      ),
-                    ],
+                const SizedBox(height: 5),
+                Text(
+                  provider.currentMajor.isNotEmpty
+                      ? provider.currentMajor
+                      : "Chưa có dữ liệu",
+                  style: const TextStyle(
+                    color: Colors.cyanAccent,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 24,
+                    letterSpacing: 1.5,
                   ),
                 ),
               ],
@@ -249,7 +164,32 @@ class SyllabusTreeWidget extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 25),
+          const SizedBox(height: 8),
+
+          Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              _buildLegendItem(
+                const Color(0xFF1E293B).withOpacity(0.5),
+                Colors.grey.withOpacity(0.2),
+                "Chưa tải",
+              ),
+              const SizedBox(width: 15),
+              _buildLegendItem(
+                const Color(0xFFF26F21).withOpacity(0.2),
+                const Color(0xFFF26F21),
+                "Đã có File (AI chưa quét)",
+              ),
+              const SizedBox(width: 15),
+              _buildLegendItem(
+                const Color(0xFF064E3B).withOpacity(0.6),
+                Colors.cyanAccent,
+                "AI đã đọc (Sẵn sàng hỏi đáp)",
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 15),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
@@ -287,7 +227,7 @@ class SyllabusTreeWidget extends StatelessWidget {
                         ),
                         const SizedBox(height: 15),
                         Text(
-                          "Chuyên ngành '${provider.currentTrack}' hiện đang trống.",
+                          "Chương trình '${provider.currentMajor}' hiện đang trống.",
                           style: const TextStyle(
                             color: Colors.grey,
                             fontSize: 16,
@@ -295,7 +235,7 @@ class SyllabusTreeWidget extends StatelessWidget {
                         ),
                         const SizedBox(height: 10),
                         const Text(
-                          "Bấm 'THÊM KỲ HỌC MỚI' ở góc phải để bắt đầu xây dựng lộ trình!",
+                          "Bấm 'FLM AUTO-SYNC' ở bên trái để tải dữ liệu từ Web!",
                           style: TextStyle(
                             color: Colors.cyanAccent,
                             fontSize: 13,
@@ -308,7 +248,7 @@ class SyllabusTreeWidget extends StatelessWidget {
                     itemCount: currentSyllabusPath.length + 1,
                     itemBuilder: (context, index) {
                       if (index == currentSyllabusPath.length) {
-                        if (personalTags.isEmpty) return const SizedBox();
+                        if (userNotes.isEmpty) return const SizedBox();
                         return Container(
                           margin: const EdgeInsets.only(top: 40, bottom: 80),
                           padding: const EdgeInsets.all(20),
@@ -344,11 +284,11 @@ class SyllabusTreeWidget extends StatelessWidget {
                               Wrap(
                                 spacing: 15,
                                 runSpacing: 15,
-                                children: personalTags
+                                children: userNotes
                                     .map(
-                                      (tag) => _buildPersonalNode(
+                                      (fileName) => _buildPersonalNode(
                                         context,
-                                        tag,
+                                        fileName,
                                         provider,
                                       ),
                                     )
@@ -463,6 +403,24 @@ class SyllabusTreeWidget extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildLegendItem(Color bgColor, Color borderColor, String text) {
+    return Row(
+      children: [
+        Container(
+          width: 14,
+          height: 14,
+          decoration: BoxDecoration(
+            color: bgColor,
+            border: Border.all(color: borderColor),
+            borderRadius: BorderRadius.circular(4),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(text, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+      ],
     );
   }
 
@@ -609,15 +567,15 @@ class SyllabusTreeWidget extends StatelessWidget {
 
   Widget _buildPersonalNode(
     BuildContext context,
-    String tag,
+    String fileName,
     AppProvider provider,
   ) {
-    List<String> fileList = provider.tagFileMap[tag] ?? [];
     return Material(
       color: Colors.transparent,
       child: InkWell(
+        // Cho phép mở thẳng Note của người dùng khi ấn vào
         onTap: () {
-          showFileActionDialog(context, tag, fileList, provider);
+          provider.openObsidianFile(fileName);
         },
         borderRadius: BorderRadius.circular(12),
         child: Container(
@@ -641,16 +599,30 @@ class SyllabusTreeWidget extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                tag,
+                fileName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   fontWeight: FontWeight.w900,
-                  fontSize: 16,
+                  fontSize: 14,
                   color: Colors.white,
                 ),
               ),
-              const Text(
-                "User Note",
-                style: TextStyle(color: Color(0xFF8B5CF6), fontSize: 11),
+              const SizedBox(height: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF8B5CF6),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: const Text(
+                  "USER NOTE",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 9,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ],
           ),
@@ -665,15 +637,35 @@ class SyllabusTreeWidget extends StatelessWidget {
     String subjectName,
     AppProvider provider,
   ) {
+    int status = provider.checkSubjectStatus(subjectCode);
+
+    Color bgColor = const Color(0xFF1E293B).withOpacity(0.5);
+    Color borderColor = Colors.grey.withOpacity(0.2);
+    Color textColor = Colors.grey[600]!;
+    Color subTextColor = Colors.grey[700]!;
+
+    if (status == 1) {
+      bgColor = const Color(0xFFF26F21).withOpacity(0.2);
+      borderColor = const Color(0xFFF26F21);
+      textColor = Colors.white;
+      subTextColor = const Color(0xFFF26F21);
+    } else if (status == 2) {
+      bgColor = const Color(0xFF064E3B).withOpacity(0.6);
+      borderColor = Colors.cyanAccent;
+      textColor = Colors.white;
+      subTextColor = Colors.cyanAccent;
+    }
+
     String codeUpper = subjectCode.toUpperCase();
-    List<String> fileList = provider.tagFileMap[codeUpper] ?? [];
-    bool isCompleted = fileList.isNotEmpty;
+    String safeCode = codeUpper.replaceAll(RegExp(r'[<>:"/\\|?*]'), '_');
+    List<String> fileList =
+        provider.tagFileMap[codeUpper] ?? provider.tagFileMap[safeCode] ?? [];
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: () {
-          if (isCompleted) {
+          if (status > 0) {
             showFileActionDialog(context, codeUpper, fileList, provider);
           } else {
             showEditorDialog(context, codeUpper, null);
@@ -688,17 +680,10 @@ class SyllabusTreeWidget extends StatelessWidget {
           width: 140,
           height: 80,
           decoration: BoxDecoration(
-            color: isCompleted
-                ? const Color(0xFF064E3B).withOpacity(0.6)
-                : const Color(0xFF1E293B).withOpacity(0.5),
+            color: bgColor,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isCompleted
-                  ? Colors.cyanAccent
-                  : Colors.grey.withOpacity(0.2),
-              width: 1.5,
-            ),
-            boxShadow: isCompleted
+            border: Border.all(color: borderColor, width: 1.5),
+            boxShadow: status == 2
                 ? [
                     BoxShadow(
                       color: Colors.cyanAccent.withOpacity(0.3),
@@ -716,35 +701,36 @@ class SyllabusTreeWidget extends StatelessWidget {
                 style: TextStyle(
                   fontWeight: FontWeight.w900,
                   fontSize: 16,
-                  color: isCompleted ? Colors.white : Colors.grey[600],
+                  color: textColor,
                 ),
               ),
               Text(
                 subjectName,
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: isCompleted ? Colors.cyanAccent : Colors.grey[700],
-                  fontSize: 11,
-                ),
+                style: TextStyle(color: subTextColor, fontSize: 11),
               ),
-              if (isCompleted)
+              if (status > 0)
                 Padding(
                   padding: const EdgeInsets.only(top: 4.0),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(
-                        Icons.check_circle,
+                      Icon(
+                        status == 2 ? Icons.check_circle : Icons.edit_document,
                         size: 12,
-                        color: Colors.greenAccent,
+                        color: status == 2
+                            ? Colors.greenAccent
+                            : const Color(0xFFF26F21),
                       ),
                       if (fileList.length > 1) ...[
                         const SizedBox(width: 4),
                         Text(
                           "(${fileList.length})",
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 10,
-                            color: Colors.greenAccent,
+                            color: status == 2
+                                ? Colors.greenAccent
+                                : const Color(0xFFF26F21),
                             fontWeight: FontWeight.bold,
                           ),
                         ),

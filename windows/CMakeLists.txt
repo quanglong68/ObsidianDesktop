@@ -1,6 +1,10 @@
 # Project-level configuration.
 cmake_minimum_required(VERSION 3.14)
+if(POLICY CMP0175)
+  cmake_policy(SET CMP0175 OLD)
+endif()
 project(fptu_second_brain LANGUAGES CXX)
+add_definitions(-D_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS)
 
 # The name of the executable created for the application. Change this to change
 # the on-disk name of your application.
